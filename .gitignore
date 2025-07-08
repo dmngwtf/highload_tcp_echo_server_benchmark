@@ -10,7 +10,7 @@ build/
 
 # Результаты тестов
 results.json
-results.png
+
 
 # Временные файлы
 *.wrk.txt
