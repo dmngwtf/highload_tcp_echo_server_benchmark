@@ -2,36 +2,34 @@ import socket
 import threading
 import time
 
-def run_threaded_server(port=8888, duration=2):
-    def handle_client(client_socket, addr):
+def run_threaded_server(port=8888, duration=30):
+    def handle_client(client_socket):
         try:
-            client_socket.settimeout(1.0)  # Таймаут для recv
             while True:
                 data = client_socket.recv(1024)
                 if not data:
                     break
-                client_socket.send(data)
-        except socket.timeout:
-            pass
+                client_socket.sendall(data)
         except Exception as e:
-            print(f"Ошибка в потоке {addr}: {e}")
+            print(f"Ошибка в потоке: {e}")
         finally:
             client_socket.close()
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.settimeout(1.0)  # Таймаут для accept
-    server.bind(('localhost', port))
-    server.listen(400)
-    
-    start_time = time.time()
+    server.bind(('0.0.0.0', port))
+    server.listen(1000)
+    server.settimeout(1.0)
+
     threads = []
+    start_time = time.time()
     
     try:
         while time.time() - start_time < duration:
             try:
-                client_socket, addr = server.accept()
-                thread = threading.Thread(target=handle_client, args=(client_socket, addr))
+                client_socket, _ = server.accept()
+                thread = threading.Thread(target=handle_client, args=(client_socket,))
+                thread.daemon = True
                 thread.start()
                 threads.append(thread)
             except socket.timeout:

@@ -1,0 +1,27 @@
+# Папки
+__pycache__/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Лог-файлы
+*.log
+
+# Результаты тестов
+results.json
+results.png
+
+# Временные файлы
+*.wrk.txt
+
+# Скомпилированные файлы
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# Папки и файлы IDE
+.idea/
+*.iml

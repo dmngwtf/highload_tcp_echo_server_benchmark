@@ -1,11 +1,10 @@
 import asyncio
+import time
+import json
+from concurrent.futures import ThreadPoolExecutor
 from threaded_server import run_threaded_server
 from async_server import run_async_server
 from tester import run_load_test, profile_memory, visualize_results
-from concurrent.futures import ThreadPoolExecutor
-import json
-from tqdm import tqdm
-import time
 
 def run_tests():
     results = {
@@ -14,32 +13,33 @@ def run_tests():
     }
 
     tests = [
-        ('Threaded', lambda: run_threaded_server(8888,30), 8888, 'threaded'),
-        ('Async', lambda: asyncio.run(run_async_server(8889,30)), 8889, 'async')
+        ('threaded', lambda: run_threaded_server(8888, duration=15), 8888),
+        ('async', lambda: asyncio.run(run_async_server(8889, duration=15)), 8889),
     ]
 
-    for test_name, test_func, port, key in tqdm(tests, desc="Running tests", unit="test"):
-        print(f"Запуск {test_name.lower()} сервера...")
-        # Запускаем сервер в отдельном потоке
+    for key, server_func, port in tests:
+        print(f"\nЗапуск {key} сервера...")
+
         with ThreadPoolExecutor() as executor:
-            future = executor.submit(test_func)
-            # Ждем 2 секунды, чтобы сервер успел запуститься
-            time.sleep(2)
-            # Запускаем нагрузочный тест, пока сервер работает
-            results[key]['rps'], results[key]['latency'] = run_load_test(port, duration=25)
-            # Измеряем память после завершения сервера
-            results[key]['memory'] = profile_memory(lambda: future.result())
+            future = executor.submit(server_func)
+            time.sleep(2)  # Даем серверу стартовать
+
+            rps, latency = run_load_test(port, duration=10, connections=100)
+            results[key]['rps'] = rps
+            results[key]['latency'] = latency
+
+            memory = profile_memory(lambda: future.result())
+            results[key]['memory'] = memory
 
     with open('results.json', 'w') as f:
         json.dump(results, f, indent=4)
 
     visualize_results(results)
 
-    print("\nРезультаты тестирования:")
-    print(f"Threaded: RPS={results['threaded']['rps']:.2f}, Latency={results['threaded']['latency']:.2f}ms, Memory={results['threaded']['memory']:.2f}MB")
-    print(f"Async: RPS={results['async']['rps']:.2f}, Latency={results['async']['latency']:.2f}ms, Memory={results['async']['memory']:.2f}MB")
-
-    return results
+    print("\nФинальные результаты:")
+    for key in results:
+        r = results[key]
+        print(f"{key.capitalize()}: RPS={r['rps']:.2f}, Latency={r['latency']:.2f}ms, Memory={r['memory']:.4f}MB")
 
 if __name__ == "__main__":
     run_tests()

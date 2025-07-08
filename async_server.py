@@ -15,6 +15,8 @@ async def handle_client(reader, writer):
         await writer.wait_closed()
 
 async def run_async_server(port=8889, duration=30):
-    server = await asyncio.start_server(handle_client, 'localhost', port)
+    server = await asyncio.start_server(handle_client, '0.0.0.0', port)
     async with server:
         await asyncio.sleep(duration)
+        server.close()
+        await server.wait_closed()
